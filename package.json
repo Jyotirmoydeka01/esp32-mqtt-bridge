@@ -1,0 +1,11 @@
+{
+    "name": "mqtt-firebase-bridge",
+    "version": "1.0.0",
+    "description": "Bridge between HiveMQ and Firebase",
+    "type": "module",
+    "main": "mqtt-to-firebase.js",
+    "dependencies": {
+        "firebase": "^10.8.1",
+        "mqtt": "^5.3.5"
+    }
+}
