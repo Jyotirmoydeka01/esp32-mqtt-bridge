@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import mqtt from 'mqtt';
+import http from 'http'; // <-- Added to satisfy Render
 
 // 1. Firebase Configuration
 const firebaseConfig = {
@@ -18,7 +19,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // 2. MQTT Configuration
-const MQTT_BROKER = 'mqtt://broker.hivemq.com'; // Use TCP strictly for regular Node.js scripts
+const MQTT_BROKER = 'mqtt://broker.hivemq.com';
 const MQTT_TOPIC = 'solar-panel-966fd/sensors';
 
 console.log(`Connecting to MQTT broker at ${MQTT_BROKER}...`);
@@ -51,4 +52,15 @@ client.on('message', async (topic, message) => {
     } catch (e) {
         console.error("Failed to process message:", e);
     }
+});
+
+// 3. Dummy Web Server to keep Render instances alive
+const PORT = process.env.PORT || 10000;
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('MQTT Bridge is running happily!\n');
+});
+
+server.listen(PORT, () => {
+    console.log(`Dummy web server listening on port ${PORT} to bypass Render health checks.`);
 });
