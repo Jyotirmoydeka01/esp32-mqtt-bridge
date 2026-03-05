@@ -20,14 +20,15 @@ const db = getFirestore(app);
 
 // 2. MQTT Configuration
 const MQTT_BROKER = 'mqtt://broker.hivemq.com';
-const MQTT_TOPIC = 'solar-panel-966fd/sensors';
+const TOPIC_PRO = 'solar-panel-966fd/sensors';
+const TOPIC_BASE = 'solar-panel-966fd/base/sensors';
 
 console.log(`Connecting to MQTT broker at ${MQTT_BROKER}...`);
 const client = mqtt.connect(MQTT_BROKER);
 
 client.on('connect', () => {
-    console.log(`Connected successfully! Subscribing to: ${MQTT_TOPIC}`);
-    client.subscribe(MQTT_TOPIC, (err) => {
+    console.log(`Connected! Subscribing to Pro: ${TOPIC_PRO} and Base: ${TOPIC_BASE}`);
+    client.subscribe([TOPIC_PRO, TOPIC_BASE], (err) => {
         if (err) {
             console.error('Subscription error:', err);
         }
@@ -45,9 +46,12 @@ client.on('message', async (topic, message) => {
             // Add Firestore server timestamp
             payload.timestamp = serverTimestamp();
 
+            // Determine which collection to save to based on the topic
+            const targetCollection = (topic === TOPIC_BASE) ? "sensor_data_base" : "sensor_data";
+
             // Save to Firestore
-            const docRef = await addDoc(collection(db, "sensor_data"), payload);
-            console.log("Document written to Firebase with ID: ", docRef.id);
+            const docRef = await addDoc(collection(db, targetCollection), payload);
+            console.log(`Saved to [${targetCollection}] with ID: ${docRef.id}`);
         }
     } catch (e) {
         console.error("Failed to process message:", e);
