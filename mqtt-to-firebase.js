@@ -40,8 +40,8 @@ client.on('message', async (topic, message) => {
         const payload = JSON.parse(message.toString());
         console.log(`Received data on ${topic}:`, payload);
 
-        // Ensure payload has actual data before pushing to Firestore
-        if (payload.env_temp || payload.humidity || payload.voltage) {
+        // Ensure payload has actual data before pushing to Firestore. We use !== undefined because a value of 0 is falsy in Javascript.
+        if (payload.env_temp !== undefined || payload.humidity !== undefined || payload.voltage !== undefined || payload.surface_temp !== undefined || payload.light_intensity !== undefined || payload.current_val !== undefined) {
 
             // Add Firestore server timestamp
             payload.timestamp = serverTimestamp();
