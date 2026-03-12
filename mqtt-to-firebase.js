@@ -47,8 +47,16 @@ client.on('message', async (topic, message) => {
         // Ensure payload has actual data before pushing to Firestore. We use !== undefined because a value of 0 is falsy in Javascript.
         if (payload.env_temp !== undefined || payload.humidity !== undefined || payload.voltage !== undefined || payload.surface_temp !== undefined || payload.light_intensity !== undefined || payload.current_val !== undefined) {
 
-            // Add Firestore server timestamp
-            payload.timestamp = serverTimestamp();
+            // Use ESP32-provided timestamp for offline data, or server timestamp for live data
+            if (payload.ts && typeof payload.ts === 'string' && payload.ts.startsWith('20')) {
+                // Offline data: ESP32 sent an ISO timestamp from NTP sync
+                payload.timestamp = new Date(payload.ts);
+                delete payload.ts;
+            } else {
+                // Live data: use Firestore server timestamp
+                if (payload.ts) delete payload.ts;  // Remove relative timestamps like "T+123"
+                payload.timestamp = serverTimestamp();
+            }
 
             // Determine which collection to save to based on the topic
             const targetCollection = (topic === TOPIC_BASE) ? "sensor_data_base" : "sensor_data";
