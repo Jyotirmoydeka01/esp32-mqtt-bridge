@@ -49,8 +49,10 @@ client.on('message', async (topic, message) => {
 
             // Use ESP32-provided timestamp for offline data, or server timestamp for live data
             if (payload.ts && typeof payload.ts === 'string' && payload.ts.startsWith('20')) {
-                // Offline data: ESP32 sent an ISO timestamp from NTP sync
-                const parsedDate = new Date(payload.ts);
+                // Offline data: ESP32 sent an ISO timestamp from NTP sync ALREADY shifted to IST
+                // e.g. "2026-03-12T16:40:00". We must append +05:30 here so the Node server
+                // (which runs in UTC) correctly understands this is an IST time.
+                const parsedDate = new Date(`${payload.ts}+05:30`);
                 console.log(`[TS] Using ESP32 timestamp: "${payload.ts}" → ${parsedDate.toISOString()}`);
                 payload.timestamp = Timestamp.fromDate(parsedDate);
                 delete payload.ts;
