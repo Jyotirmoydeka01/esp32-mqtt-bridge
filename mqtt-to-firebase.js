@@ -1,7 +1,8 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import mqtt from 'mqtt';
-import http from 'http'; // <-- Added to satisfy Render
+import express from 'express';
+import cors from 'cors';
 
 // 1. Firebase Configuration
 const firebaseConfig = {
@@ -61,13 +62,46 @@ client.on('message', async (topic, message) => {
     }
 });
 
-// 3. Dummy Web Server to keep Render instances alive
-const PORT = process.env.PORT || 10000;
-const server = http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('MQTT Bridge is running happily!\n');
+// 3. Express Web Server for HTTP Proxy Bypass and Render Keep-Alive
+const expressApp = express();
+expressApp.use(cors());
+expressApp.use(express.json());
+
+expressApp.post('/upload', (req, res) => {
+    try {
+        const payload = req.body;
+        const panel = payload.panel; // Expecting "pro" or "base"
+
+        if (!panel) {
+            return res.status(400).send("Missing 'panel' identifier in payload.");
+        }
+
+        // Route to the correct HiveMQ topic based on the ESP32 that posted
+        const topic = (panel === 'base') ? TOPIC_BASE : TOPIC_PRO;
+
+        // Optional: Remove panel ID to perfectly mimic the old MQTT payload structure
+        delete payload.panel;
+
+        // Proxy the HTTP payload directly into the HiveMQ Cloud WebSocket pipeline
+        client.publish(topic, JSON.stringify(payload), { qos: 0 }, (err) => {
+            if (err) {
+                console.error("Failed to proxy HTTP payload to MQTT:", err);
+                return res.status(500).send("MQTT Publish Failed");
+            }
+            res.status(200).send("Payload proxied to HiveMQ successfully.");
+        });
+
+    } catch (e) {
+        console.error("Error processing /upload:", e);
+        res.status(500).send("Internal Server Error");
+    }
 });
 
-server.listen(PORT, () => {
-    console.log(`Dummy web server listening on port ${PORT} to bypass Render health checks.`);
+expressApp.get('/', (req, res) => {
+    res.status(200).send('MQTT Bridge is running happily and Proxying HTTP to HiveMQ!');
+});
+
+const PORT = process.env.PORT || 10000;
+expressApp.listen(PORT, () => {
+    console.log(`Express web server listening on port ${PORT} to proxy HTTP to HiveMQ.`);
 });
