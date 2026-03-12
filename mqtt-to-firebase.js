@@ -18,13 +18,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// 2. MQTT Configuration
-const MQTT_BROKER = 'mqtt://broker.hivemq.com';
+// 2. MQTT Configuration (Secure HiveMQ Cloud)
+const MQTT_BROKER = 'mqtts://01a11b99095f4493874afc25227bd366.s1.eu.hivemq.cloud:8883';
 const TOPIC_PRO = 'solar-panel-966fd/sensors';
 const TOPIC_BASE = 'solar-panel-966fd/base/sensors';
 
-console.log(`Connecting to MQTT broker at ${MQTT_BROKER}...`);
-const client = mqtt.connect(MQTT_BROKER);
+console.log(`Connecting to Secure MQTT broker at ${MQTT_BROKER}...`);
+const client = mqtt.connect(MQTT_BROKER, {
+    username: 'KURAM',
+    password: 'kram@R5879'
+});
 
 client.on('connect', () => {
     console.log(`Connected! Subscribing to Pro: ${TOPIC_PRO} and Base: ${TOPIC_BASE}`);
