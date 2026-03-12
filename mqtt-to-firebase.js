@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import mqtt from 'mqtt';
 import express from 'express';
 import cors from 'cors';
@@ -50,11 +50,14 @@ client.on('message', async (topic, message) => {
             // Use ESP32-provided timestamp for offline data, or server timestamp for live data
             if (payload.ts && typeof payload.ts === 'string' && payload.ts.startsWith('20')) {
                 // Offline data: ESP32 sent an ISO timestamp from NTP sync
-                payload.timestamp = new Date(payload.ts);
+                const parsedDate = new Date(payload.ts);
+                console.log(`[TS] Using ESP32 timestamp: "${payload.ts}" → ${parsedDate.toISOString()}`);
+                payload.timestamp = Timestamp.fromDate(parsedDate);
                 delete payload.ts;
             } else {
                 // Live data: use Firestore server timestamp
-                if (payload.ts) delete payload.ts;  // Remove relative timestamps like "T+123"
+                console.log(`[TS] Using server timestamp (ts was: "${payload.ts || 'none'}")`);
+                if (payload.ts) delete payload.ts;
                 payload.timestamp = serverTimestamp();
             }
 
